@@ -116,26 +116,27 @@ export async function POST(req: Request) {
     : null;
 
   if (!research) {
-    // Distinguish "Ollama is down" from "Ollama answered unusably" so the
-    // UI can show the right message. Cheap localhost probe, failure path only.
-    let ollamaUp = config.configured;
-    if (config.configured) {
+    // Distinguish "provider is down" from "provider answered unusably" so
+    // the UI can show the right message. Cheap probe, failure path only.
+    // Only Ollama runs locally and can be "not running".
+    let providerDown = false;
+    if (config.configured && config.provider === "ollama") {
       try {
         const probe = await fetch(`${config.baseUrl}/api/version`, {
           signal: AbortSignal.timeout(4000),
         });
-        ollamaUp = probe.ok;
+        providerDown = !probe.ok;
       } catch {
-        ollamaUp = false;
+        providerDown = true;
       }
     }
     return NextResponse.json(
       {
         error: !config.configured
           ? "Research needs a configured AI provider and none is available."
-          : !ollamaUp
+          : providerDown
             ? "Ollama isn't running. Start Ollama and try again."
-            : "Ollama didn't return usable research (it may be overloaded or the material too messy). Try again or paste cleaner text.",
+            : "The AI service didn't return usable research (it may be overloaded or the material too messy). Try again or paste cleaner text.",
       },
       { status: 503 },
     );

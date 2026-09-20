@@ -6,13 +6,14 @@ import type { Angle, GenerateRequest, ResearchResult } from "./types";
  *
  * Supported providers:
  *   AI_PROVIDER=ollama   # local Ollama server (default, no API key needed)
- *   AI_PROVIDER=openai    # reserved for future cloud integration
+ *   AI_PROVIDER=groq      # Groq cloud API (free tier, needs GROQ_API_KEY)
  *
  * Env vars (all server-side only, never exposed to the client):
- *   AI_PROVIDER=openai          # default: "ollama"
- *   AI_MODEL=llama3.2           # Ollama model tag to use
- *   AI_BASE_URL=http://localhost:11434  # Ollama server address
- *   AI_API_KEY=...              # optional; NOT required for local Ollama
+ *   AI_PROVIDER=ollama          # default: "ollama"
+ *   AI_MODEL=llama3.2           # Ollama tag, or Groq model id
+ *   AI_BASE_URL=http://localhost:11434  # Ollama address (or Groq base URL)
+ *   AI_API_KEY=...              # optional for Ollama; required for Groq
+ *   GROQ_API_KEY=...            # alias for AI_API_KEY when using Groq
  */
 
 export interface AiConfig {
@@ -25,10 +26,16 @@ export interface AiConfig {
 
 export function getAiConfig(): AiConfig {
   const provider = process.env.AI_PROVIDER ?? "ollama";
-  const model = process.env.AI_MODEL ?? "llama3.2";
-  const baseUrl =
-    process.env.AI_BASE_URL ?? process.env.OLLAMA_BASE_URL ?? "http://localhost:11434";
-  const apiKey = process.env.AI_API_KEY ?? process.env.OPENAI_API_KEY;
+  const defaultModel =
+    provider === "groq" ? "openai/gpt-oss-120b" : "llama3.2";
+  const model = process.env.AI_MODEL ?? defaultModel;
+  const defaultBase =
+    provider === "groq"
+      ? "https://api.groq.com/openai/v1"
+      : "http://localhost:11434";
+  const baseUrl = process.env.AI_BASE_URL ?? process.env.OLLAMA_BASE_URL ?? defaultBase;
+  const apiKey =
+    process.env.AI_API_KEY ?? process.env.GROQ_API_KEY ?? process.env.OPENAI_API_KEY;
 
   return {
     provider,
@@ -186,6 +193,50 @@ async function callOllama(
   }
 }
 
+interface OpenAIChatResponse {
+  choices?: Array<{ message?: { content?: unknown } }>;
+}
+
+/**
+ * OpenAI-compatible chat completions caller (used for Groq).
+ * Same contract as callOllama: prompt in, text out, null on any failure.
+ * Plain fetch — no SDK. Never throws.
+ */
+async function callCloudChat(
+  system: string,
+  prompt: string,
+  config: AiConfig,
+  opts?: { timeoutMs?: number; maxTokens?: number },
+): Promise<string | null> {
+  if (!config.apiKey) return null;
+  try {
+    const res = await fetch(`${config.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        stream: false,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: prompt },
+        ],
+        max_tokens: opts?.maxTokens ?? 1200,
+      }),
+      signal: AbortSignal.timeout(opts?.timeoutMs ?? 60_000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as OpenAIChatResponse;
+    const content = data.choices?.[0]?.message?.content;
+    const text = typeof content === "string" ? content.trim() : "";
+    return text.length > 0 ? text : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Generate via the configured provider.
  * Returns null when generation isn't possible so callers
@@ -195,12 +246,13 @@ export async function generateWithProvider(
   req: GenerateRequest,
   config: AiConfig,
 ): Promise<string | null> {
+  const system = buildSystemPrompt(req);
+  const prompt = buildUserPrompt(req);
+  if (config.provider === "groq") {
+    return callCloudChat(system, prompt, config).catch(() => null);
+  }
   if (config.provider !== "ollama") return null;
-  const output = await callOllama(
-    buildSystemPrompt(req),
-    buildUserPrompt(req),
-    config,
-  ).catch(() => null);
+  const output = await callOllama(system, prompt, config).catch(() => null);
   return output;
 }
 
@@ -288,10 +340,21 @@ export async function generateAnglesWithProvider(
   topic: string,
   config: AiConfig,
 ): Promise<Angle[] | null> {
+  const prompt = `Topic: ${topic.trim()}`;
+  if (config.provider === "groq") {
+    const text = await callCloudChat(
+      ANGLES_SYSTEM_PROMPT,
+      prompt,
+      config,
+      { timeoutMs: 120_000, maxTokens: 1500 },
+    ).catch(() => null);
+    if (!text) return null;
+    return parseAnglesText(text);
+  }
   if (config.provider !== "ollama") return null;
   const text = await callOllama(
     ANGLES_SYSTEM_PROMPT,
-    `Topic: ${topic.trim()}`,
+    prompt,
     config,
     // Angle lists are long generations — allow slow local models more time.
     // Still aborts eventually so the route falls back to mock angles.
@@ -302,8 +365,7 @@ export async function generateAnglesWithProvider(
 }
 
 /**
- * Analyze research material via the configured Ollama server.
- * Reuses the same connection config — no second provider.
+ * Analyze research material via the configured provider.
  * Returns null when unavailable or unparsable. Never throws.
  * NOTE: unlike generation, there is intentionally NO mock fallback —
  * fabricating "research findings" would mean inventing facts.
@@ -312,10 +374,21 @@ export async function generateResearchWithProvider(
   material: string,
   config: AiConfig,
 ): Promise<ResearchResult | null> {
+  const prompt = `Material to analyze:\n${material.trim()}`;
+  if (config.provider === "groq") {
+    const text = await callCloudChat(
+      RESEARCH_SYSTEM_PROMPT,
+      prompt,
+      config,
+      { timeoutMs: 120_000, maxTokens: 2000 },
+    ).catch(() => null);
+    if (!text) return null;
+    return parseResearchText(text);
+  }
   if (config.provider !== "ollama") return null;
   const text = await callOllama(
     RESEARCH_SYSTEM_PROMPT,
-    `Material to analyze:\n${material.trim()}`,
+    prompt,
     config,
     { timeoutMs: 300_000, numPredict: 2000, logLabel: "research" },
   ).catch(() => null);
