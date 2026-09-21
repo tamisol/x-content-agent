@@ -34,8 +34,11 @@ export function getAiConfig(): AiConfig {
       ? "https://api.groq.com/openai/v1"
       : "http://localhost:11434";
   const baseUrl = process.env.AI_BASE_URL ?? process.env.OLLAMA_BASE_URL ?? defaultBase;
-  const apiKey =
+  const rawKey =
     process.env.AI_API_KEY ?? process.env.GROQ_API_KEY ?? process.env.OPENAI_API_KEY;
+  // Trim: copy-pasted keys often carry a trailing space/newline that
+  // would otherwise cause silent "invalid key" failures.
+  const apiKey = rawKey?.trim() ? rawKey.trim() : undefined;
 
   return {
     provider,
@@ -220,7 +223,11 @@ async function callCloudChat(
       }),
       signal: AbortSignal.timeout(opts?.timeoutMs ?? 60_000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // Status only — no body, no key. Visible in server logs for debugging.
+      console.error(`[cloud] chat completions HTTP ${res.status}`);
+      return null;
+    }
     const data = (await res.json()) as OpenAIChatResponse;
     const content = data.choices?.[0]?.message?.content;
     const text = typeof content === "string" ? content.trim() : "";
