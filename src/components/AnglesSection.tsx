@@ -22,12 +22,6 @@ export default function AnglesSection(p: Props) {
     <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-zinc-100">Content Angles</h2>
-        {p.angles.length > 0 && p.mocked && (
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-zinc-800/80 px-2 py-1 text-[11px] font-medium text-zinc-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-            Offline preview
-          </span>
-        )}
       </div>
       <p className="mb-4 text-[13px] leading-relaxed text-zinc-500">
         Drop in a rough idea and get 5–6 different ways to post about it. Pick

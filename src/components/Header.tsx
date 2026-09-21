@@ -13,12 +13,6 @@ export default function Header() {
             <p className="text-xs text-zinc-500">AI posts for crypto natives</p>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <span className="rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-400">
-            Local-first
-          </span>
-        </div>
       </div>
     </header>
   );

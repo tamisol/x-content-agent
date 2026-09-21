@@ -453,7 +453,7 @@ export default function Home() {
       <footer className="border-t border-zinc-800/80">
         <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-5 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p>X Content Agent — write like yourself, only faster.</p>
-          <p>Local-first · No account needed</p>
+          <p>No account needed</p>
         </div>
       </footer>
     </div>

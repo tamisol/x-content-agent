@@ -52,10 +52,6 @@ function buildMock(req: GenerateRequest): string {
   }
 
   const hook = toneLine(req.tone, topic);
-  const styleNote =
-    req.styleSamples && req.styleSamples.length > 0
-      ? `\n\nMatched to your style (${req.styleSamples.length} sample${req.styleSamples.length > 1 ? "s" : ""}).`
-      : "";
 
   switch (req.contentType) {
     case "Thread":
@@ -66,15 +62,15 @@ function buildMock(req: GenerateRequest): string {
         ``,
         `3/ What I'm watching next:${extra ? ` ${extra}` : " positioning, onchain activity, and how CT reacts to the next leg."}`,
         ``,
-        `4/ TL;DR: stay curious, stay liquid, don't get chopped.${styleNote}`,
+        `4/ TL;DR: stay curious, stay liquid, don't get chopped.`,
       ].join("\n");
     case "Reply":
-      return `agree — ${topic} is one of those things where patience pays.\n\nmost people fade it too early.${extra ? `\n\nre: ${extra}` : ""}${styleNote}`;
+      return `agree — ${topic} is one of those things where patience pays.\n\nmost people fade it too early.${extra ? `\n\nre: ${extra}` : ""}`;
     case "Quote Tweet":
-      return `quoting this because ${topic} deserves more attention.\n\n${hook}${extra ? `\n\nContext: ${extra}` : ""}${styleNote}`;
+      return `quoting this because ${topic} deserves more attention.\n\n${hook}${extra ? `\n\nContext: ${extra}` : ""}`;
     case "X Post":
     default:
-      return `${hook}\n\nNobody talks about the boring part: showing up every day, managing risk, ignoring the noise.\n\nThat's the whole game.${extra ? `\n\nContext: ${extra}` : ""}${styleNote}`;
+      return `${hook}\n\nNobody talks about the boring part: showing up every day, managing risk, ignoring the noise.\n\nThat's the whole game.${extra ? `\n\nContext: ${extra}` : ""}`;
   }
 }
 

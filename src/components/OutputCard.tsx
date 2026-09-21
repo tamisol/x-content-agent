@@ -38,12 +38,6 @@ export default function OutputCard(p: Props) {
           Generated content
         </h2>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          {p.mocked && hasOutput && (
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-zinc-800/80 px-2 py-1 text-[11px] font-medium text-zinc-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-              Offline preview
-            </span>
-          )}
           <span className={`text-xs font-medium tabular-nums ${charColor(len)}`}>
             {len} chars
           </span>
