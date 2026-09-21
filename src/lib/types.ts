@@ -29,8 +29,6 @@ export interface GenerateRequest {
   previousOutput?: string;
   /** Selected content angle, e.g. "Contrarian — Challenge the hype: ...". */
   angle?: string;
-  /** Research findings summary to ground the post in. */
-  research?: string;
 }
 
 export interface GenerateResponse {
@@ -49,23 +47,4 @@ export interface Angle {
 export interface AnglesResponse {
   angles: Angle[];
   mocked: boolean;
-}
-
-export interface ResearchOpportunity {
-  title: string;
-  description: string;
-}
-
-export interface ResearchResult {
-  /** Short topic label for the generator, e.g. "Solana memecoin launch". */
-  suggestedTopic: string;
-  keyPoints: string[];
-  importantDetails: string[];
-  opportunities: ResearchOpportunity[];
-}
-
-export interface ResearchResponse {
-  research: ResearchResult;
-  source: "text" | "url";
-  charsAnalyzed: number;
 }

@@ -10,14 +10,12 @@ interface Props {
   context: string;
   loading: boolean;
   selectedAngleName: string | null;
-  researchAttached: boolean;
   onTopic: (v: string) => void;
   onContentType: (v: ContentType) => void;
   onTone: (v: Tone) => void;
   onContext: (v: string) => void;
   onGenerate: () => void;
   onClearAngle: () => void;
-  onClearResearch: () => void;
 }
 
 const inputCls =
@@ -41,7 +39,7 @@ export default function GeneratorForm(p: Props) {
       </div>
 
       {p.selectedAngleName && (
-        <div className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2">
+        <div className="mb-4 flex items-center justify-between gap-2 rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2">
           <p className="min-w-0 flex-1 truncate text-xs text-zinc-300">
             Using angle:{" "}
             <span className="font-semibold text-zinc-100">
@@ -58,22 +56,7 @@ export default function GeneratorForm(p: Props) {
         </div>
       )}
 
-      {p.researchAttached && (
-        <div className="mb-4 flex items-center justify-between gap-2 rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2">
-          <p className="min-w-0 flex-1 truncate text-xs font-medium text-emerald-300">
-            Research attached ✓
-          </p>
-          <button
-            type="button"
-            onClick={p.onClearResearch}
-            className="shrink-0 rounded px-2 py-1 text-xs font-medium text-zinc-500 transition hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500"
-          >
-            Clear
-          </button>
-        </div>
-      )}
-
-      {!p.selectedAngleName && !p.researchAttached && (
+      {!p.selectedAngleName && (
         <div className="mb-4" />
       )}
 

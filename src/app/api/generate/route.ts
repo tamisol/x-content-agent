@@ -98,7 +98,6 @@ export async function POST(req: Request) {
   const mode = body.mode === "shorter" || body.mode === "natural" ? body.mode : "generate";
   const previousOutput = (body.previousOutput ?? "").toString().slice(0, 5000);
   const angle = (body.angle ?? "").toString().slice(0, 1000);
-  const research = (body.research ?? "").toString().slice(0, 4000);
 
   if (mode === "generate" && topic.trim().length === 0) {
     return NextResponse.json(
@@ -122,7 +121,6 @@ export async function POST(req: Request) {
     mode,
     previousOutput,
     angle: angle.trim().length > 0 ? angle : undefined,
-    research: research.trim().length > 0 ? research : undefined,
   };
 
   // Prefer live generation; fall back to mock content when the model
@@ -136,9 +134,6 @@ export async function POST(req: Request) {
   let mocked = false;
   if (!output) {
     output = buildMock(request);
-    if (request.research?.trim()) {
-      output += "\n\nGrounded in the attached research.";
-    }
     mocked = true;
   }
 
